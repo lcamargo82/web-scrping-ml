@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.idea/
+.vscode/
+
+# Logs and Debug
+*.log
+scraping_errors.log
+debug_*.txt
+debug_*.html
+test_run.log
+test_output.txt
+
+# Project Output
+output/
+!output/.gitkeep
+results.json
