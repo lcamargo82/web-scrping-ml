@@ -10,10 +10,11 @@ class ReportGenerator:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-    def generate_excel(self, data):
+    def generate_excel(self, data, use_edge_browser=False):
         """
         Gera um arquivo Excel com os dados dos produtos.
         data: Lista de dicionários
+        use_edge_browser: Se True, força links a abrirem no Edge (Windows)
         """
         if not data:
             print("Nenhum dado para gerar relatório.")
@@ -108,6 +109,16 @@ class ReportGenerator:
                                     })
                             except Exception as e:
                                 print(f"Erro ao baixar imagem {img_url}: {e}")
+
+                # Reescrever links para usar o protocolo microsoft-edge se solicitado
+                if use_edge_browser and "Link" in df.columns:
+                    link_col_idx = df.columns.get_loc("Link")
+                    for i, (idx, row) in enumerate(df.iterrows()):
+                        original_link = row.get("Link")
+                        if original_link and isinstance(original_link, str) and original_link.startswith("http"):
+                             edge_link = f"microsoft-edge:{original_link}"
+                             # Escreve o link modificado, mantendo o texto original se possível
+                             worksheet.write_url(i + 1, link_col_idx, edge_link, string="Ver no Site (Edge)")
 
             print(f"Relatório gerado com sucesso: {filepath}")
             return filepath

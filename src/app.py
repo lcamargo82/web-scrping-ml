@@ -43,6 +43,14 @@ def main():
         help="Produtos contendo estas palavras serão removidos dos resultados."
     )
 
+    # Configuração de Exportação
+    st.sidebar.subheader("Opções de Exportação")
+    use_edge = st.sidebar.checkbox(
+        "Abrir links no Microsoft Edge", 
+        value=True, 
+        help="Força os links da planilha a abrirem no navegador Edge (Windows)."
+    )
+
     # Área principal
     uploaded_file = st.file_uploader("Envie a imagem do produto", type=['jpg', 'jpeg', 'png', 'webp'])
     
@@ -127,10 +135,11 @@ def main():
                         if not os.path.exists(output_dir):
                             os.makedirs(output_dir)
                             
+                            
                         generator = ReportGenerator(output_dir=output_dir)
                         # Gerar arquivo (com imagens)
                         with st.spinner("Gerando planilha com imagens (isso pode levar alguns segundos)..."):
-                            filepath = generator.generate_excel(all_products)
+                            filepath = generator.generate_excel(all_products, use_edge_browser=use_edge)
                         
                         if filepath and os.path.exists(filepath):
                             with open(filepath, "rb") as file:
