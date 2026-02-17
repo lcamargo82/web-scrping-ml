@@ -122,6 +122,15 @@ def search_mercadolibre(query, limit=10):
                 
                 description = ", ".join(attributes) if attributes else ""
 
+                # IMAGEM (Extração da URL)
+                image_url = ""
+                image_tag = item.find('img', class_='ui-search-result-image__element') or \
+                            item.find('img', class_='poly-component__picture')
+                
+                if image_tag:
+                    # Tenta pegar 'data-src' (lazy load) ou 'src'
+                    image_url = image_tag.get('data-src') or image_tag.get('src') or ""
+
                 products.append({
                     "Termo de Busca": query,
                     "Título": title,
@@ -131,7 +140,8 @@ def search_mercadolibre(query, limit=10):
                     "Logística": logistics,
                     "Condição": condition,
                     "Descrição/Atributos": description,
-                    "Vendas (Aprox)": "Ver no Site", 
+                    "Vendas (Aprox)": "Ver no Site",
+                    "Imagem URL": image_url,
                     "ID": "N/A"
                 })
             
