@@ -2,6 +2,7 @@
 import pandas as pd
 import os
 from datetime import datetime
+import PIL.Image
 
 class ReportGenerator:
     def __init__(self, output_dir="output"):
@@ -66,6 +67,19 @@ class ReportGenerator:
                                 response = requests.get(img_url, timeout=5)
                                 if response.status_code == 200:
                                     image_data = BytesIO(response.content)
+                                    
+                                    # Converter imagem para PNG se necessário (ex: WebP)
+                                    try:
+                                        with PIL.Image.open(image_data) as img:
+                                            # Converter para RGB se for RGBA/P para salvar como JPEG ou manter PNG
+                                            # Vamos salvar como PNG em memória para compatibilidade total
+                                            png_buffer = BytesIO()
+                                            img.save(png_buffer, format="PNG")
+                                            image_data = png_buffer
+                                    except Exception as img_err:
+                                        print(f"Erro ao converter imagem, tentando usar original: {img_err}")
+                                        image_data.seek(0) # Resetar ponteiro se falhar
+
                                     # Inserir imagem na célula
                                     # row + 1 (pois header é row 0)
                                     worksheet.insert_image(idx + 1, img_url_col_idx, img_url, {

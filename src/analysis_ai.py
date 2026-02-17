@@ -1,6 +1,7 @@
 
 import os
 import json
+import PIL.Image
 from google import genai
 from dotenv import load_dotenv
 
@@ -22,9 +23,12 @@ def analyze_image(image_path, user_context=None):
         # Configuração do Client (Nova SDK)
         client = genai.Client(api_key=api_key)
 
-        # Upload da imagem (Nova SDK)
-        # O método client.files.upload aceita 'file' como caminho ou objeto
-        file_ref = client.files.upload(file=image_path)
+        # Carregar imagem com PIL
+        try:
+            image = PIL.Image.open(image_path)
+        except Exception as e:
+            print(f"Erro ao abrir imagem com PIL: {e}")
+            return []
         
         # Montar contexto extra se houver
         context_str = ""
@@ -47,18 +51,58 @@ def analyze_image(image_path, user_context=None):
         Não use formatação Markdown (```json) ou texto extra. Apenas o JSON puro.
         """
 
-        # Geração de conteúdo (Nova SDK)
-        # Usando gemini-2.0-flash experimental ou fallback para 1.5
-        # Vou usar 'gemini-1.5-flash' que é estável, ou 'gemini-2.0-flash-exp' se disponível.
-        # O código original usava 'gemini-flash-latest', manterei ou ajustarei para algo mais robusto.
-        model_name = "gemini-2.0-flash-exp" # Tentativa de modelo mais capaz, ou fallback
-        # Melhor usar um alias conhecido ou o que estava antes se funcionava
-        # O código anterior usava "gemini-flash-latest". 
+        # Descoberta dinâmica de modelos (para evitar erros de nome/versão)
+        chosen_model = None
         
-        response = client.models.generate_content(
-            model="gemini-2.0-flash", # Upgrade para 2.0 Flash se disponível, ou voltar para 1.5
-            contents=[file_ref, prompt]
-        )
+        try:
+            print("Buscando modelos disponíveis na conta...")
+            available_models = list(client.models.list())
+            
+            # Prioridade: Procurar por modelos "flash" (mais rápidos/baratos)
+            # Ordenar para pegar versões mais recentes ou estáveis se possível
+            # Ex: gemini-1.5-flash, gemini-2.0-flash, etc.
+            
+            flash_models = [m.name for m in available_models if "flash" in m.name.lower() and "gemini" in m.name.lower()]
+            other_gemini = [m.name for m in available_models if "gemini" in m.name.lower() and m.name not in flash_models]
+            
+            # Tentar Flash primeiro, depois outros
+            candidate_models = flash_models + other_gemini
+            
+            if not candidate_models:
+                # Fallback hardcoded se a listagem falhar ou não retornar nada útil
+                candidate_models = ["gemini-1.5-flash", "gemini-2.0-flash-exp", "gemini-pro-vision"]
+            
+            print(f"Candidatos encontrados: {candidate_models}")
+
+            response = None
+            last_error = None
+
+            for model_name in candidate_models:
+                # Pular modelos de audio-only se houver (o nome geralmente indica)
+                if "audio" in model_name.lower() and "speech" not in model_name.lower(): 
+                   # Alguns modelos 2.5 flash native audio podem não aceitar texto/imagem genérico, mas vamos tentar se for o único
+                   pass
+
+                print(f"Tentando usar modelo: {model_name}...")
+                try:
+                    response = client.models.generate_content(
+                        model=model_name, 
+                        contents=[image, prompt]
+                    )
+                    print(f"Sucesso com modelo: {model_name}")
+                    chosen_model = model_name
+                    break 
+                except Exception as e:
+                    print(f"Falha ao usar modelo {model_name}: {e}")
+                    last_error = e
+            
+            if not response:
+                print(f"Todos os modelos falharam. Último erro: {last_error}")
+                return []
+
+        except Exception as e:
+            print(f"Erro na descoberta/uso de modelos: {e}")
+            return []
 
         # Processamento da resposta
         response_text = response.text
@@ -73,7 +117,6 @@ def analyze_image(image_path, user_context=None):
     except Exception as e:
         print(f"Erro ao analisar imagem com Gemini: {e}")
         return []
-
 
 if __name__ == "__main__":
     print("Módulo de Análise de IA (Gemini) carregado.")

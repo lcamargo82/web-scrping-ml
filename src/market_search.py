@@ -89,7 +89,7 @@ def search_mercadolibre(query, limit=10):
                 seller = "N/A (Via Scraping)"
 
                 # LOGÍSTICA (Full, Flex, Normal)
-                logistics = "Normal"
+                logistics_types = []
                 
                 # 1. Tenta identificar FULL explicitamente (Label ou Texto)
                 full_label = item.find('span', class_='ui-search-item__fulfillment-label')
@@ -99,12 +99,17 @@ def search_mercadolibre(query, limit=10):
                 shipping_text = shipping_tag.get_text().strip().lower() if shipping_tag else ""
                 
                 if full_label or "full" in shipping_text:
-                    logistics = "Full"
+                    logistics_types.append("Full")
                 
-                # 2. Tenta identificar FLEX (Geralmente "Chegará hoje" ou "Chegará amanhã" com ícone de raio)
-                # Prioridade: Full ganha de Flex se ambos aparecerem (raro), mas Flex ganha de Normal
-                elif "chegará hoje" in shipping_text or "chegará amanhã" in shipping_text or "flex" in shipping_text:
-                    logistics = "Flex"
+                # 2. Tenta identificar FLEX
+                if "chegará hoje" in shipping_text or "chegará amanhã" in shipping_text or "flex" in shipping_text:
+                    logistics_types.append("Flex")
+
+                # Se não for Full nem Flex, assume Normal se houver info de envio, ou deixa vazio/Normal
+                if not logistics_types:
+                    logistics_types.append("Normal")
+                
+                logistics = ", ".join(logistics_types)
 
                 # CONDIÇÃO (Novo/Recondicionado)
                 condition_tag = item.find('span', class_='poly-component__item-condition')
