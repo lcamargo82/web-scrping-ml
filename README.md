@@ -20,7 +20,15 @@ Project for web scraping using Machine Learning tools.
 
 ## Usage
 
-(Add usage instructions here)
+To run the CLI version:
+```bash
+python src/main.py
+```
+
+To run the Web App (Streamlit):
+```bash
+streamlit run src/app.py
+```
 
 ## Structure
 

@@ -60,7 +60,7 @@ class ReportGenerator:
                     import requests
                     from io import BytesIO
 
-                    for idx, row in df.iterrows():
+                    for i, (idx, row) in enumerate(df.iterrows()):
                         img_url = row.get("Imagem URL")
                         if img_url:
                             try:
@@ -80,12 +80,31 @@ class ReportGenerator:
                                         print(f"Erro ao converter imagem, tentando usar original: {img_err}")
                                         image_data.seek(0) # Resetar ponteiro se falhar
 
-                                    # Inserir imagem na célula
-                                    # row + 1 (pois header é row 0)
-                                    worksheet.insert_image(idx + 1, img_url_col_idx, img_url, {
+                                    # Inserir imagem na célula (Compatibilidade com versões antigas do Excel)
+                                    # Usamos insert_image com redimensionamento calculado para caber na célula
+                                    
+                                    # Definir tamanho da célula em pixels (aproximado)
+                                    # Altura 100 ~ 133px, Largura 30 ~ 210px (depende da fonte, mas é uma boa base)
+                                    cell_width_px = 210 
+                                    cell_height_px = 133
+                                    
+                                    # Obter tamanho original da imagem
+                                    img_width, img_height = img.size
+                                    
+                                    # Calcular fator de escala para caber na célula
+                                    x_scale = cell_width_px / img_width
+                                    y_scale = cell_height_px / img_height
+                                    
+                                    # Usar o menor fator para manter proporção e caber totalmente
+                                    scale = min(x_scale, y_scale) * 0.9 # 0.9 para deixar uma margem de 10%
+                                    
+                                    # Centralizar (opcional, requer calculo de offset, mas vamos simplificar primeiro)
+
+                                    worksheet.insert_image(i + 1, img_url_col_idx, img_url, {
                                         'image_data': image_data,
-                                        'x_scale': 0.5, 'y_scale': 0.5,
-                                        'object_position': 1
+                                        'x_scale': scale, 
+                                        'y_scale': scale,
+                                        'object_position': 1 # Mover e redimensionar com as células
                                     })
                             except Exception as e:
                                 print(f"Erro ao baixar imagem {img_url}: {e}")
